@@ -4,3 +4,5 @@
 *.pyc
 *.png
 *.cache
+build
+*.egg-info
