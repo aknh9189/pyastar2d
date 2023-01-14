@@ -43,7 +43,7 @@ inline float l1_norm(int i0, int j0, int i1, int j1) {
 // start, goal:    index of start/goal in flattened grid
 // diag_ok:        if true, allows diagonal moves (8-conn.)
 // paths (output): for each node, stores previous node in path
-static PyObject *astar(PyObject *self, PyObject *args) {
+static PyObject * astar(PyObject *self, PyObject *args) {
   const PyArrayObject* weights_object;
   int h;
   int w;
@@ -83,6 +83,11 @@ static PyObject *astar(PyObject *self, PyObject *args) {
   int start_j = start % w;
 
   heuristic_ptr heuristic_func = select_heuristic(heuristic_override);
+
+  Node closest_node(start, 0.0, 1);
+  float closest_node_h = INF;
+
+  std::cout << "in astar" << std::endl;
 
   while (!nodes_to_visit.empty()) {
     // .top() doesn't actually remove the node
@@ -126,6 +131,12 @@ static PyObject *astar(PyObject *self, PyObject *args) {
               nbrs[i] / w, nbrs[i] % w, goal_i, goal_j, start_i, start_j);
           }
 
+          // update the closest node to the goal based on the heuristic
+          if (heuristic_cost < closest_node_h) {
+            closest_node_h = heuristic_cost;
+            closest_node = Node(nbrs[i], heuristic_cost, cur.path_length + 1);
+          }
+
           // paths with lower expected cost are explored first
           float priority = new_cost + heuristic_cost;
           nodes_to_visit.push(Node(nbrs[i], priority, cur.path_length + 1));
@@ -136,8 +147,10 @@ static PyObject *astar(PyObject *self, PyObject *args) {
       }
     }
   }
-
+  
   PyObject *return_val;
+  return_val = PyTuple_New(2);
+  std::cout << "made it to return" << std::endl;
   if (path_length >= 0) {
     npy_intp dims[2] = {path_length, 2};
     PyArrayObject* path = (PyArrayObject*) PyArray_SimpleNew(2, dims, NPY_INT32);
@@ -152,17 +165,39 @@ static PyObject *astar(PyObject *self, PyObject *args) {
 
         idx = paths[idx];
     }
+    std::cout << "made it to return 2" << std::endl;
+    PyTuple_SET_ITEM(return_val, 0, Py_True);
+    std::cout << "made it to return 3" << std::endl;
+    PyTuple_SET_ITEM(return_val, 1, PyArray_Return(path));
+    std::cout << "made it to return 4" << std::endl;
+  }
+  else if (closest_node.path_length > 0) { // if a goal is not found, return a path to the node we reached closest to the goal
+    npy_intp dims[2] = {closest_node.path_length, 2};
+    PyArrayObject* path = (PyArrayObject*) PyArray_SimpleNew(2, dims, NPY_INT32);
+    npy_int32 *iptr, *jptr;
+    int idx = closest_node.idx;
+    for (npy_intp i = dims[0] - 1; i >= 0; --i) {
+        iptr = (npy_int32*) (path->data + i * path->strides[0]);
+        jptr = (npy_int32*) (path->data + i * path->strides[0] + path->strides[1]);
 
-    return_val = PyArray_Return(path);
+        *iptr = idx / w;
+        *jptr = idx % w;
+
+        idx = paths[idx];
+    }
+    PyTuple_SET_ITEM(return_val, 0, Py_False);
+    PyTuple_SET_ITEM(return_val, 1, PyArray_Return(path));
+  } else { // if a goal is not found, return a path to the node we reached closest to the goal
+    PyTuple_SET_ITEM(return_val, 0, Py_False);
+    PyTuple_SET_ITEM(return_val, 1, Py_BuildValue("")); // no soln --> return None
   }
-  else {
-    return_val = Py_BuildValue(""); // no soln --> return None
-  }
+  std::cout << "made it past return" << std::endl;
 
   delete[] costs;
   delete[] nbrs;
   delete[] paths;
 
+  std::cout << "made it past return 2" << std::endl;
   return return_val;
 }
 
