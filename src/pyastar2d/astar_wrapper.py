@@ -11,8 +11,10 @@ ndmat_f_type = np.ctypeslib.ndpointer(
 ndmat_i2_type = np.ctypeslib.ndpointer(
     dtype=np.int32, ndim=2, flags="C_CONTIGUOUS")
 
+
+
 # Define input/output types
-pyastar2d.astar.restype = ndmat_i2_type  # Nx2 (i, j) coordinates or None
+pyastar2d.astar.restype = (ctypes.c_bool, ndmat_i2_type)  # Nx2 (i, j) coordinates or None
 pyastar2d.astar.argtypes = [
     ndmat_f_type,   # weights
     ctypes.c_int,   # height
@@ -35,7 +37,7 @@ def astar_path(
         start: Tuple[int, int],
         goal: Tuple[int, int],
         allow_diagonal: bool = False,
-        heuristic_override: Heuristic = Heuristic.DEFAULT) -> Optional[np.ndarray]:
+        heuristic_override: Heuristic = Heuristic.DEFAULT) -> Tuple[bool, Optional[np.ndarray]]:
     """
     Run astar algorithm on 2d weights.
 
@@ -44,6 +46,9 @@ def astar_path(
     param Tuple[int, int] goal: (i, j)
     param bool allow_diagonal: Whether to allow diagonal moves
     param Heuristic heuristic_override: Override heuristic, see Heuristic(IntEnum)
+
+    Returns:
+        Tuple[bool, Optional[np.ndarray]]: (success, path)
 
     """
     assert weights.dtype == np.float32, (
@@ -66,8 +71,9 @@ def astar_path(
     start_idx = np.ravel_multi_index(start, (height, width))
     goal_idx = np.ravel_multi_index(goal, (height, width))
 
-    path = pyastar2d.astar.astar(
+    success, path = pyastar2d.astar.astar(
         weights.flatten(), height, width, start_idx, goal_idx, allow_diagonal,
         int(heuristic_override)
     )
-    return path
+    print("success", success)
+    return success, path
