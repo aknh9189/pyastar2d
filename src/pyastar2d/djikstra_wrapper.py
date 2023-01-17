@@ -49,8 +49,8 @@ def djikstra_fill(
     assert weights.dtype == np.float32, (
         f"weights must have np.float32 data type, but has {weights.dtype}"
     )
-    # For the heuristic to be valid, each move must cost at least 1.
-    if weights.min(axis=None) < 1.:
+    # Make sure all cost values are greater than zero
+    if weights.min(axis=None) < 0.:
         raise ValueError("Minimum cost to move must be 1, but got %f" % (
             weights.min(axis=None)))
     # Ensure start is within bounds.

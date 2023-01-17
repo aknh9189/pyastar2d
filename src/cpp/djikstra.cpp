@@ -42,7 +42,9 @@ inline float l1_norm(int i0, int j0, int i1, int j1) {
 // start:    index of start in flattened grid
 // diag_ok:        if true, allows diagonal moves (8-conn.)
 // fill_radius:    how far, in cells, to plan out to 
-// paths (output): 2d grid of min cost to each cell within radius of start
+// costs (output): 2d grid of min cost to each cell within radius of start
+//                 np.inf for infinte cost to point
+//                 np.nan for points outside of radius
 static PyObject *djikstra(PyObject *self, PyObject *args) {
   const PyArrayObject* weights_object;
   int h;
