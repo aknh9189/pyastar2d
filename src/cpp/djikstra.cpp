@@ -8,7 +8,6 @@
 
 
 const float INF = std::numeric_limits<float>::infinity();
-
 // represents a single pixel
 class Node {
   public:
@@ -44,7 +43,7 @@ inline float l1_norm(int i0, int j0, int i1, int j1) {
 // diag_ok:        if true, allows diagonal moves (8-conn.)
 // fill_radius:    how far, in cells, to plan out to 
 // paths (output): 2d grid of min cost to each cell within radius of start
-static PyObject *astar(PyObject *self, PyObject *args) {
+static PyObject *djikstra(PyObject *self, PyObject *args) {
   const PyArrayObject* weights_object;
   int h;
   int w;
@@ -126,44 +125,45 @@ static PyObject *astar(PyObject *self, PyObject *args) {
   }
 
   PyObject *return_val;
-  if (path_length >= 0) {
-    npy_intp dims[2] = {path_length, 2};
-    PyArrayObject* path = (PyArrayObject*) PyArray_SimpleNew(2, dims, NPY_INT32);
-    npy_int32 *iptr, *jptr;
-    int idx = goal;
-    for (npy_intp i = dims[0] - 1; i >= 0; --i) {
-        iptr = (npy_int32*) (path->data + i * path->strides[0]);
-        jptr = (npy_int32*) (path->data + i * path->strides[0] + path->strides[1]);
 
-        *iptr = idx / w;
-        *jptr = idx % w;
+  npy_intp dims[2] = {h, w};
+  PyArrayObject* costs_python = (PyArrayObject*) PyArray_SimpleNew(2, dims, NPY_FLOAT32);
+  npy_float32 *loc_ptr;
+  for (npy_intp i = 0; i <= dims[0] - 1; i++) {
+    for (npy_intp j = 0; j <= dims[1] - 1; j++) {
+      // std::cout << " setting " << i << ", " << j << std::endl;
+      // std::cout << " strides " << costs_python->strides[0] << ", " << costs_python->strides[1] << std::endl;
+      // std::cout << " data " << costs_python->data << std::endl;
+      // std::cout << " offset " << i * costs_python->strides[0] + j * costs_python->strides[1] << std::endl;
+      // std::cout << " costs: " << costs[i * w + j] << std::endl;
+      loc_ptr = (npy_float32*) (costs_python->data + i * costs_python->strides[0] + j * costs_python->strides[1]);
+      int r2 = (i - start_i) * (i - start_i) + (j - start_j) * (j - start_j);
+      if (r2 > max_r2) {
+        *loc_ptr = NAN;
+      } else {
+        *loc_ptr = costs[i * w + j];
+      }
 
-        idx = paths[idx];
     }
-
-    return_val = PyArray_Return(path);
-  }
-  else {
-    return_val = Py_BuildValue(""); // no soln --> return None
   }
 
+  return_val = PyArray_Return(costs_python);
   delete[] costs;
   delete[] nbrs;
   delete[] paths;
-
   return return_val;
 }
 
-static PyMethodDef astar_methods[] = {
-    {"astar", (PyCFunction)astar, METH_VARARGS, "astar"},
+static PyMethodDef djikstra_methods[] = {
+    {"djikstra", (PyCFunction)djikstra, METH_VARARGS, "djikstra"},
     {NULL, NULL, 0, NULL}
 };
 
-static struct PyModuleDef astar_module = {
-    PyModuleDef_HEAD_INIT,"astar", NULL, -1, astar_methods
+static struct PyModuleDef djikstra_module = {
+    PyModuleDef_HEAD_INIT,"djikstra", NULL, -1, djikstra_methods
 };
 
-PyMODINIT_FUNC PyInit_astar(void) {
+PyMODINIT_FUNC PyInit_djikstra(void) {
   import_array();
-  return PyModule_Create(&astar_module);
+  return PyModule_Create(&djikstra_module);
 }

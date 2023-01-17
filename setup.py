@@ -12,6 +12,14 @@ astar_module = Extension(
                  ],
     extra_compile_args=["-O3", "-Wall", "-shared", "-fpic"],
 )
+djikstra_module = Extension(
+    'pyastar2d.djikstra', sources=['src/cpp/djikstra.cpp'],
+    include_dirs=[
+                    numpy.get_include(),   # for numpy/arrayobject.h
+                    'src/cpp'    # for experimental_heuristics.h
+                 ],
+    extra_compile_args=["-O3", "-Wall", "-shared", "-fpic"],
+)
 
 
 with open("requirements.txt", "r") as fh:
@@ -34,7 +42,7 @@ setuptools.setup(
     install_requires=install_requires,
     packages=setuptools.find_packages(where="src", exclude=("tests",)),
     package_dir={"": "src"},
-    ext_modules=[astar_module],
+    ext_modules=[astar_module, djikstra_module],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
