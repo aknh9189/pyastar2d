@@ -82,6 +82,7 @@ static PyObject *djikstra(PyObject *self, PyObject *args) {
   int start_j = start % w;
 
   int max_r2 = fill_radius * fill_radius;
+  // std::cout << "max_r2: " << max_r2 << std::endl;
 
   while (!nodes_to_visit.empty()) {
     // .top() doesn't actually remove the node
@@ -94,8 +95,10 @@ static PyObject *djikstra(PyObject *self, PyObject *args) {
 
     // if we're too far from the start, don't search the neighbors
     int r2 = (row - start_i) * (row - start_i) + (col - start_j) * (col - start_j);
-    if (r2 > max_r2)
+    if (r2 > max_r2) {
+      // std::cout << " r2 > max_r2, skipping" << std::endl;
       continue;
+    }
 
     // check bounds and find up to eight neighbors: top to bottom, left to right
     nbrs[0] = (diag_ok && row > 0 && col > 0)          ? cur.idx - w - 1   : -1;
@@ -133,11 +136,7 @@ static PyObject *djikstra(PyObject *self, PyObject *args) {
   npy_float32 *loc_ptr;
   for (npy_intp i = 0; i <= dims[0] - 1; i++) {
     for (npy_intp j = 0; j <= dims[1] - 1; j++) {
-      // std::cout << " setting " << i << ", " << j << std::endl;
-      // std::cout << " strides " << costs_python->strides[0] << ", " << costs_python->strides[1] << std::endl;
-      // std::cout << " data " << costs_python->data << std::endl;
-      // std::cout << " offset " << i * costs_python->strides[0] + j * costs_python->strides[1] << std::endl;
-      // std::cout << " costs: " << costs[i * w + j] << std::endl;
+
       loc_ptr = (npy_float32*) (costs_python->data + i * costs_python->strides[0] + j * costs_python->strides[1]);
       int r2 = (i - start_i) * (i - start_i) + (j - start_j) * (j - start_j);
       if (r2 > max_r2) {
