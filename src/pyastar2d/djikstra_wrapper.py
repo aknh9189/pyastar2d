@@ -65,4 +65,8 @@ def djikstra_fill(
     djikstra_map = pyastar2d.djikstra.djikstra(
         weights.flatten(), height, width, start_idx, fill_radius, allow_diagonal
     )
-    return djikstra_map
+    # center the start point in the map. This only changes things if we are on a boundary. This makes the map dimensions symmetric
+    full_map = np.full((2 * fill_radius + 1, 2 * fill_radius + 1), np.nan, dtype=np.float32)
+    #NANs are used to indicate the point is outside of the map
+    full_map[fill_radius - start[0]:fill_radius - start[0] + height, fill_radius - start[1]:fill_radius - start[1] + width] = djikstra_map
+    return full_map

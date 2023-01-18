@@ -75,5 +75,5 @@ def astar_path(
         weights.flatten(), height, width, start_idx, goal_idx, allow_diagonal,
         int(heuristic_override)
     )
-    print("success", success)
+    # print("success", success)
     return success, path
