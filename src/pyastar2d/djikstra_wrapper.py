@@ -43,8 +43,6 @@ def djikstra_fill(
     param Tuple[int, int] start: (i, j)
     param fill_radius: The radius to fill
     param bool allow_diagonal: Whether to allow diagonal moves
-    param Heuristic heuristic_override: Override heuristic, see Heuristic(IntEnum)
-
     """
     assert weights.dtype == np.float32, (
         f"weights must have np.float32 data type, but has {weights.dtype}"
@@ -65,8 +63,4 @@ def djikstra_fill(
     djikstra_map = pyastar2d.djikstra.djikstra(
         weights.flatten(), height, width, start_idx, fill_radius, allow_diagonal
     )
-    # center the start point in the map. This only changes things if we are on a boundary. This makes the map dimensions symmetric
-    full_map = np.full((2 * fill_radius + 1, 2 * fill_radius + 1), np.nan, dtype=np.float32)
-    #NANs are used to indicate the point is outside of the map
-    full_map[fill_radius - start[0]:fill_radius - start[0] + height, fill_radius - start[1]:fill_radius - start[1] + width] = djikstra_map
-    return full_map
+    return djikstra_map
