@@ -13,9 +13,8 @@ class Node {
   public:
     int idx; // index in the flattened grid
     float cost; // cost of traversing this pixel
-    int path_length; // the length of the path to reach this node
 
-    Node(int i, float c, int path_length) : idx(i), cost(c), path_length(path_length) {}
+    Node(int i, float c) : idx(i), cost(c) {}
 };
 
 // the top of the priority queue is the greatest element by default,
@@ -64,9 +63,8 @@ static PyObject *djikstra(PyObject *self, PyObject *args) {
 
   float* weights = (float*) weights_object->data;
   int* paths = new int[h * w];
-  int path_length = -1;
 
-  Node start_node(start, 0., 1);
+  Node start_node(start, 0.);
 
   float* costs = new float[h * w];
   for (int i = 0; i < h * w; ++i)
@@ -120,7 +118,9 @@ static PyObject *djikstra(PyObject *self, PyObject *args) {
 
           // paths with lower expected cost are explored first
           float priority = new_cost;
-          nodes_to_visit.push(Node(nbrs[i], priority, cur.path_length + 1));
+          // std::cout << " neighbor idx: " << nbrs[i] << " priority: " << priority << std::endl;
+          // NOTE: previously this line has caused segfaults when Nodes kept track of path length too. Unsure why but it appears to be gone for now 
+          nodes_to_visit.push(Node(nbrs[i], priority));
 
           costs[nbrs[i]] = new_cost;
           paths[nbrs[i]] = cur.idx;
