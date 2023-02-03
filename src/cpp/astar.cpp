@@ -1,4 +1,5 @@
 #include <queue>
+#include <unordered_set>
 #include <limits>
 #include <cmath>
 #include <Python.h>
@@ -14,9 +15,8 @@ class Node {
   public:
     int idx; // index in the flattened grid
     float cost; // cost of traversing this pixel
-    int path_length; // the length of the path to reach this node
 
-    Node(int i, float c, int path_length) : idx(i), cost(c), path_length(path_length) {}
+    Node(int i, float c) : idx(i), cost(c) {}
 };
 
 // the top of the priority queue is the greatest element by default,
@@ -35,6 +35,16 @@ inline float linf_norm(int i0, int j0, int i1, int j1) {
 // L_1 norm (manhattan distance)
 inline float l1_norm(int i0, int j0, int i1, int j1) {
   return std::abs(i0 - i1) + std::abs(j0 - j1);
+}
+
+int find_path_length(int* paths, int start, int last_idx) {
+  int path_length = 0;
+  int cur = last_idx;
+  while (cur != start) {
+    cur = paths[cur];
+    path_length++;
+  }
+  return path_length;
 }
 
 
@@ -63,9 +73,10 @@ static PyObject * astar(PyObject *self, PyObject *args) {
 
   float* weights = (float*) weights_object->data;
   int* paths = new int[h * w];
-  int path_length = -1;
+  bool* in_open = new bool[h * w];
+  bool reached_goal = false;
 
-  Node start_node(start, 0., 1);
+  Node start_node(start, 0.);
 
   float* costs = new float[h * w];
   for (int i = 0; i < h * w; ++i)
@@ -74,6 +85,7 @@ static PyObject * astar(PyObject *self, PyObject *args) {
 
   std::priority_queue<Node> nodes_to_visit;
   nodes_to_visit.push(start_node);
+  in_open[start] = true;
 
   int* nbrs = new int[8];
   
@@ -84,7 +96,7 @@ static PyObject * astar(PyObject *self, PyObject *args) {
 
   heuristic_ptr heuristic_func = select_heuristic(heuristic_override);
 
-  Node closest_node(start, 0.0, 1);
+  Node closest_node(start, 0.0);
   float closest_node_h = INF;
 
   // std::cout << "in astar" << std::endl;
@@ -94,11 +106,12 @@ static PyObject * astar(PyObject *self, PyObject *args) {
     Node cur = nodes_to_visit.top();
 
     if (cur.idx == goal) {
-      path_length = cur.path_length;
+      reached_goal = true;
       break;
     }
 
     nodes_to_visit.pop();
+    in_open[cur.idx] = false;
 
     int row = cur.idx / w;
     int col = cur.idx % w;
@@ -115,6 +128,7 @@ static PyObject * astar(PyObject *self, PyObject *args) {
     float heuristic_cost;
     for (int i = 0; i < 8; ++i) {
       if (nbrs[i] >= 0) {
+        // check if this node is in the closed list
         // the sum of the cost so far and the cost of this move
         float new_cost = costs[cur.idx] + weights[nbrs[i]];
         if (new_cost < costs[nbrs[i]]) {
@@ -134,15 +148,26 @@ static PyObject * astar(PyObject *self, PyObject *args) {
           // update the closest node to the goal based on the heuristic
           if (heuristic_cost < closest_node_h) {
             closest_node_h = heuristic_cost;
-            closest_node = Node(nbrs[i], heuristic_cost, cur.path_length + 1);
+            closest_node = Node(nbrs[i], heuristic_cost);
           }
 
           // paths with lower expected cost are explored first
           float priority = new_cost + heuristic_cost;
-          nodes_to_visit.push(Node(nbrs[i], priority, cur.path_length + 1));
 
           costs[nbrs[i]] = new_cost;
           paths[nbrs[i]] = cur.idx;
+          if (!in_open[nbrs[i]]) {
+            nodes_to_visit.push(Node(nbrs[i], priority));
+            in_open[nbrs[i]] = true;
+          }
+          // if (path_lengths[cur.idx] - path_lengths[nbrs[i]] != -1) {
+          //   std::cout << "we've found the broken part" << std::endl;
+          //   std::cout << "cur.idx is " << cur.idx << std::endl;
+          //   std::cout << "cur.path_length is " << cur.path_length << std::endl;
+          //   std::cout << "nbrs[i] is " << nbrs[i] << std::endl;
+          //   std::cout << "path_lengths[cur.idx] is " << path_lengths[cur.idx] << std::endl;
+          //   std::cout << "path_lengths[nbrs[i]] is " << path_lengths[nbrs[i]] << std::endl;
+          // }
         }
       }
     }
@@ -150,8 +175,8 @@ static PyObject * astar(PyObject *self, PyObject *args) {
   
   PyObject *return_val;
   return_val = PyTuple_New(2);
-  // std::cout << "made it to return" << std::endl;
-  if (path_length >= 0) {
+  if (reached_goal) {
+    int path_length = find_path_length(paths, start, goal);
     npy_intp dims[2] = {path_length, 2};
     PyArrayObject* path = (PyArrayObject*) PyArray_SimpleNew(2, dims, NPY_INT32);
     npy_int32 *iptr, *jptr;
@@ -165,12 +190,12 @@ static PyObject * astar(PyObject *self, PyObject *args) {
 
         idx = paths[idx];
     }
-    // std::cout << "made it to return 2" << std::endl;
     PyTuple_SET_ITEM(return_val, 0, Py_True);
     PyTuple_SET_ITEM(return_val, 1, PyArray_Return(path));
   }
-  else if (closest_node.path_length > 0) { // if a goal is not found, return a path to the node we reached closest to the goal
-    npy_intp dims[2] = {closest_node.path_length, 2};
+  else { // if a goal is not found, return a path to the node we reached closest to the goal
+    int closest_node_path_length = find_path_length(paths, start, closest_node.idx);
+    npy_intp dims[2] = {closest_node_path_length, 2};
     PyArrayObject* path = (PyArrayObject*) PyArray_SimpleNew(2, dims, NPY_INT32);
     npy_int32 *iptr, *jptr;
     int idx = closest_node.idx;
@@ -185,15 +210,12 @@ static PyObject * astar(PyObject *self, PyObject *args) {
     }
     PyTuple_SET_ITEM(return_val, 0, Py_False);
     PyTuple_SET_ITEM(return_val, 1, PyArray_Return(path));
-  } else { // if a goal is not found, return a path to the node we reached closest to the goal
-    PyTuple_SET_ITEM(return_val, 0, Py_False);
-    PyTuple_SET_ITEM(return_val, 1, Py_BuildValue("")); // no soln --> return None
-  }
-  // std::cout << "made it past return" << std::endl;
+  } 
 
   delete[] costs;
   delete[] nbrs;
   delete[] paths;
+  delete[] in_open;
 
   // std::cout << "made it past return 2" << std::endl;
   return return_val;
