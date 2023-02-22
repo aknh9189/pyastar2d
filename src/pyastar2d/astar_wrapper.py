@@ -75,5 +75,9 @@ def astar_path(
         weights.flatten(), height, width, start_idx, goal_idx, allow_diagonal,
         int(heuristic_override)
     )
+
+    # add the start node to the path
+    if success:
+        path = np.vstack((start, path))
     # print("success", success)
     return success, path
