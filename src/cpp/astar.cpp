@@ -74,6 +74,11 @@ static PyObject * astar(PyObject *self, PyObject *args) {
   float* weights = (float*) weights_object->data;
   int* paths = new int[h * w];
   bool* in_open = new bool[h * w];
+  // print out all true in_open values
+  for (int i = 0; i < h * w; ++i) {
+    in_open[i] = false;
+    paths[i] = 0;
+  }
   bool reached_goal = false;
 
   Node start_node(start, 0.);
@@ -127,11 +132,14 @@ static PyObject * astar(PyObject *self, PyObject *args) {
 
     float heuristic_cost;
     for (int i = 0; i < 8; ++i) {
+      // std::cout << "nbrs[i] = " << nbrs[i] << " "; 
       if (nbrs[i] >= 0) {
         // check if this node is in the closed list
         // the sum of the cost so far and the cost of this move
         float new_cost = costs[cur.idx] + weights[nbrs[i]];
+        // std::cout << " new_cost = " << new_cost << " ";
         if (new_cost < costs[nbrs[i]]) {
+          // std::cout << " pst check | ";
           // estimate the cost to the goal based on legal moves
           // Get the heuristic method to use
           if (heuristic_override == DEFAULT) {
@@ -156,8 +164,10 @@ static PyObject * astar(PyObject *self, PyObject *args) {
 
           costs[nbrs[i]] = new_cost;
           paths[nbrs[i]] = cur.idx;
+          // std::cout << "in_open[nbrs[i]] = " << in_open[nbrs[i]] << " ";
           if (!in_open[nbrs[i]]) {
             nodes_to_visit.push(Node(nbrs[i], priority));
+            // std::cout << "added to open! ";
             in_open[nbrs[i]] = true;
           }
           // if (path_lengths[cur.idx] - path_lengths[nbrs[i]] != -1) {
@@ -171,6 +181,7 @@ static PyObject * astar(PyObject *self, PyObject *args) {
         }
       }
     }
+    // std::cout << std::endl;
   }
   
   PyObject *return_val;
