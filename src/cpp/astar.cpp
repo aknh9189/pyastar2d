@@ -73,11 +73,11 @@ static PyObject * astar(PyObject *self, PyObject *args) {
 
   float* weights = (float*) weights_object->data;
   int* paths = new int[h * w];
-  bool* in_open = new bool[h * w];
-  // print out all true in_open values
+  bool* in_closed = new bool[h * w];
+  // print out all true in_closed values
   for (int i = 0; i < h * w; ++i) {
-    in_open[i] = false;
-    paths[i] = 0;
+    in_closed[i] = false;
+    paths[i] = 0; //TTTTTTTTTTTT
   }
   bool reached_goal = false;
 
@@ -90,7 +90,6 @@ static PyObject * astar(PyObject *self, PyObject *args) {
 
   std::priority_queue<Node> nodes_to_visit;
   nodes_to_visit.push(start_node);
-  in_open[start] = true;
 
   int* nbrs = new int[8];
   
@@ -99,7 +98,6 @@ static PyObject * astar(PyObject *self, PyObject *args) {
   int start_i = start / w;
   int start_j = start % w;
 
-  heuristic_ptr heuristic_func = select_heuristic(heuristic_override);
 
   Node closest_node(start, 0.0);
   float closest_node_h = INF;
@@ -110,13 +108,20 @@ static PyObject * astar(PyObject *self, PyObject *args) {
     // .top() doesn't actually remove the node
     Node cur = nodes_to_visit.top();
 
+    // std::cout << "Expanding node " << cur.idx << " with cost " << cur.cost << " and arr cost " << costs[cur.idx] << std::endl;
+
     if (cur.idx == goal) {
       reached_goal = true;
+      // std::cout << "reached goal with final cost of " << cur.cost << " " << costs[cur.idx] << std::endl;
       break;
     }
 
     nodes_to_visit.pop();
-    in_open[cur.idx] = false;
+    if (in_closed[cur.idx]) {
+      continue; // if this node is stale, skip it
+    }
+
+    in_closed[cur.idx] = true;
 
     int row = cur.idx / w;
     int col = cur.idx % w;
@@ -138,19 +143,14 @@ static PyObject * astar(PyObject *self, PyObject *args) {
         // the sum of the cost so far and the cost of this move
         float new_cost = costs[cur.idx] + weights[nbrs[i]];
         // std::cout << " new_cost = " << new_cost << " ";
-        if (new_cost < costs[nbrs[i]]) {
+        if (new_cost < costs[nbrs[i]] && !in_closed[nbrs[i]]) {
           // std::cout << " pst check | ";
           // estimate the cost to the goal based on legal moves
           // Get the heuristic method to use
-          if (heuristic_override == DEFAULT) {
-            if (diag_ok) {
-              heuristic_cost = linf_norm(nbrs[i] / w, nbrs[i] % w, goal_i, goal_j);
-            } else {
-              heuristic_cost = l1_norm(nbrs[i] / w, nbrs[i] % w, goal_i, goal_j);
-            }
+          if (diag_ok) {
+            heuristic_cost = linf_norm(nbrs[i] / w, nbrs[i] % w, goal_i, goal_j);
           } else {
-            heuristic_cost = heuristic_func(
-              nbrs[i] / w, nbrs[i] % w, goal_i, goal_j, start_i, start_j);
+            heuristic_cost = l1_norm(nbrs[i] / w, nbrs[i] % w, goal_i, goal_j);
           }
 
           // update the closest node to the goal based on the heuristic
@@ -161,15 +161,13 @@ static PyObject * astar(PyObject *self, PyObject *args) {
 
           // paths with lower expected cost are explored first
           float priority = new_cost + heuristic_cost;
-
+          // std::cout << "previous values are" << costs[nbrs[i]] << " " << paths[nbrs[i]] << std::endl;
           costs[nbrs[i]] = new_cost;
           paths[nbrs[i]] = cur.idx;
-          // std::cout << "in_open[nbrs[i]] = " << in_open[nbrs[i]] << " ";
-          if (!in_open[nbrs[i]]) {
-            nodes_to_visit.push(Node(nbrs[i], priority));
-            // std::cout << "added to open! ";
-            in_open[nbrs[i]] = true;
-          }
+          // even if node is already in the queue, push the updated one 
+          // std::cout << "Adding index " << nbrs[i] << " with priority " << priority << " coming from " << cur.idx << " with values " << costs[nbrs[i]] << " and " << paths[nbrs[i]] << std::endl;
+          nodes_to_visit.push(Node(nbrs[i], priority));
+
           // if (path_lengths[cur.idx] - path_lengths[nbrs[i]] != -1) {
           //   std::cout << "we've found the broken part" << std::endl;
           //   std::cout << "cur.idx is " << cur.idx << std::endl;
@@ -226,7 +224,7 @@ static PyObject * astar(PyObject *self, PyObject *args) {
   delete[] costs;
   delete[] nbrs;
   delete[] paths;
-  delete[] in_open;
+  delete[] in_closed;
 
   // std::cout << "made it past return 2" << std::endl;
   return return_val;
