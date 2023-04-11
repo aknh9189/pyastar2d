@@ -37,6 +37,7 @@ def astar_path(
         start: Tuple[int, int],
         goal: Tuple[int, int],
         allow_diagonal: bool = False,
+        heuristic_weight:float = 1.0, 
         heuristic_override: Heuristic = Heuristic.DEFAULT) -> Tuple[bool, Optional[np.ndarray]]:
     """
     Run astar algorithm on 2d weights.
@@ -66,13 +67,16 @@ def astar_path(
     if (goal[0] < 0 or goal[0] >= weights.shape[0] or
             goal[1] < 0 or goal[1] >= weights.shape[1]):
         raise ValueError(f"Goal of {goal} lies outside grid.")
+    
+    if heuristic_weight < 0.0:
+        raise ValueError(f"Heuristic weight must be positive, but got {heuristic_weight}")
 
     height, width = weights.shape
     start_idx = np.ravel_multi_index(start, (height, width))
     goal_idx = np.ravel_multi_index(goal, (height, width))
 
     success, path = pyastar2d.astar.astar(
-        weights.flatten(), height, width, start_idx, goal_idx, allow_diagonal,
+        weights.flatten(), height, width, start_idx, goal_idx, allow_diagonal, heuristic_weight,
         int(heuristic_override)
     )
 

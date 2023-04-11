@@ -60,6 +60,7 @@ static PyObject * astar(PyObject *self, PyObject *args) {
   int start;
   int goal;
   int diag_ok;
+  float heuristic_weight;
   int heuristic_override;
 
   if (!PyArg_ParseTuple(
@@ -67,7 +68,7 @@ static PyObject * astar(PyObject *self, PyObject *args) {
         &weights_object,
         &h, &w,
         &start, &goal,
-        &diag_ok, &heuristic_override
+        &diag_ok, &heuristic_weight, &heuristic_override
         ))
     return NULL;
 
@@ -152,6 +153,7 @@ static PyObject * astar(PyObject *self, PyObject *args) {
           } else {
             heuristic_cost = l1_norm(nbrs[i] / w, nbrs[i] % w, goal_i, goal_j);
           }
+          heuristic_cost *= heuristic_weight;
 
           // update the closest node to the goal based on the heuristic
           if (heuristic_cost < closest_node_h) {
