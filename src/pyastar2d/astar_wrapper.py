@@ -66,7 +66,8 @@ def astar_path(
     # Ensure goal is within bounds.
     if (goal[0] < 0 or goal[0] >= weights.shape[0] or
             goal[1] < 0 or goal[1] >= weights.shape[1]):
-        raise ValueError(f"Goal of {goal} lies outside grid.")
+      raise ValueError(f"Goal of {goal} lies outside grid.")
+
     
     if heuristic_weight < 0.0:
         raise ValueError(f"Heuristic weight must be positive, but got {heuristic_weight}")

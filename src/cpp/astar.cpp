@@ -37,6 +37,10 @@ inline float l1_norm(int i0, int j0, int i1, int j1) {
   return std::abs(i0 - i1) + std::abs(j0 - j1);
 }
 
+inline float l2_norm(int i0, int j0, int i1, int j1) {
+  return std::sqrt(std::pow(i0 - i1, 2) + std::pow(j0 - j1, 2));
+}
+
 int find_path_length(int* paths, int start, int last_idx) {
   int path_length = 0;
   int cur = last_idx;
