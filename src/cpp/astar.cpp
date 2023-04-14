@@ -68,7 +68,7 @@ static PyObject * astar(PyObject *self, PyObject *args) {
   int heuristic_override;
 
   if (!PyArg_ParseTuple(
-        args, "Oiiiiii", // i = int, O = object
+        args, "Oiiiiifi", // i = int, O = object
         &weights_object,
         &h, &w,
         &start, &goal,
