@@ -146,14 +146,19 @@ static PyObject * astar(PyObject *self, PyObject *args) {
       if (nbrs[i] >= 0) {
         // check if this node is in the closed list
         // the sum of the cost so far and the cost of this move
-        float new_cost = costs[cur.idx] + weights[nbrs[i]];
+        float new_cost = costs[cur.idx];
+        if (i == 0 || i == 2 || i == 5 || i == 7) {
+          new_cost += weights[nbrs[i]] * 1.41421356237;;
+        } else {
+          new_cost += weights[nbrs[i]];
+        }
         // std::cout << " new_cost = " << new_cost << " ";
         if (new_cost < costs[nbrs[i]] && !in_closed[nbrs[i]]) {
           // std::cout << " pst check | ";
           // estimate the cost to the goal based on legal moves
           // Get the heuristic method to use
           if (diag_ok) {
-            heuristic_cost = linf_norm(nbrs[i] / w, nbrs[i] % w, goal_i, goal_j);
+            heuristic_cost = l2_norm(nbrs[i] / w, nbrs[i] % w, goal_i, goal_j);
           } else {
             heuristic_cost = l1_norm(nbrs[i] / w, nbrs[i] % w, goal_i, goal_j);
           }

@@ -112,7 +112,12 @@ static PyObject *djikstra(PyObject *self, PyObject *args) {
       if (nbrs[i] >= 0) {
 
         // the sum of the cost so far and the cost of this move
-        float new_cost = costs[cur.idx] + weights[nbrs[i]];
+        float new_cost = costs[cur.idx];
+        if (i == 0 || i == 2 || i == 5 || i == 7) {
+          new_cost += weights[nbrs[i]] * 1.41421356237;
+        } else {
+          new_cost += weights[nbrs[i]];
+        }
         if (new_cost < costs[nbrs[i]]) {
           // estimate the cost to the goal based on legal moves
 
