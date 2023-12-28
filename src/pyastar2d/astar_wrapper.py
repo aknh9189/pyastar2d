@@ -22,6 +22,7 @@ pyastar2d.astar.argtypes = [
     ctypes.c_int,   # start index in flattened grid
     ctypes.c_int,   # goal index in flattened grid
     ctypes.c_bool,  # allow diagonal
+    ctypes.c_float, # heuristic_weight
     ctypes.c_int,   # heuristic_override
 ]
 
