@@ -14,7 +14,7 @@ ndmat_i2_type = np.ctypeslib.ndpointer(
 
 
 # Define input/output types
-pyastar2d.astar.restype = (ctypes.c_bool, ndmat_i2_type)  # Nx2 (i, j) coordinates or None
+pyastar2d.astar.restype = (ctypes.c_bool, ndmat_i2_type, ctypes.c_float)  # Nx2 (i, j) coordinates or None
 pyastar2d.astar.argtypes = [
     ndmat_f_type,   # weights
     ctypes.c_int,   # height
@@ -39,7 +39,7 @@ def astar_path(
         goal: Tuple[int, int],
         allow_diagonal: bool = False,
         heuristic_weight:float = 1.0, 
-        heuristic_override: Heuristic = Heuristic.DEFAULT) -> Tuple[bool, Optional[np.ndarray]]:
+        heuristic_override: Heuristic = Heuristic.DEFAULT) -> Tuple[bool, Optional[np.ndarray], float]:
     """
     Run astar algorithm on 2d weights.
 
@@ -77,7 +77,7 @@ def astar_path(
     start_idx = np.ravel_multi_index(start, (height, width))
     goal_idx = np.ravel_multi_index(goal, (height, width))
 
-    success, path = pyastar2d.astar.astar(
+    success, path, cost = pyastar2d.astar.astar(
         weights.flatten(), height, width, start_idx, goal_idx, allow_diagonal, heuristic_weight,
         int(heuristic_override)
     )
@@ -86,4 +86,4 @@ def astar_path(
     if success:
         path = np.vstack((start, path))
     # print("success", success)
-    return success, path
+    return success, path, cost
