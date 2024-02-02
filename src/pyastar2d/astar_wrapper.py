@@ -77,7 +77,7 @@ def astar_path(
     start_idx = np.ravel_multi_index(start, (height, width))
     goal_idx = np.ravel_multi_index(goal, (height, width))
 
-    success, path, cost = pyastar2d.astar.astar(
+    success, path, cost, cell_costs = pyastar2d.astar.astar(
         weights.flatten(), height, width, start_idx, goal_idx, allow_diagonal, heuristic_weight,
         int(heuristic_override)
     )
@@ -86,4 +86,4 @@ def astar_path(
     if success:
         path = np.vstack((start, path))
     # print("success", success)
-    return success, path, cost
+    return success, path, cost, cell_costs

@@ -194,25 +194,33 @@ static PyObject * astar(PyObject *self, PyObject *args) {
   }
   
   PyObject *return_val;
-  return_val = PyTuple_New(3);
+  return_val = PyTuple_New(4);
   if (reached_goal) {
     int path_length = find_path_length(paths, start, goal);
     npy_intp dims[2] = {path_length, 2};
+    npy_intp dims2[1] = {path_length};
     PyArrayObject* path = (PyArrayObject*) PyArray_SimpleNew(2, dims, NPY_INT32);
+    PyArrayObject* path_costs = (PyArrayObject*) PyArray_SimpleNew(1, dims2, NPY_FLOAT32);
     npy_int32 *iptr, *jptr;
+    float *costptr;
     int idx = goal;
     for (npy_intp i = dims[0] - 1; i >= 0; --i) {
         iptr = (npy_int32*) (path->data + i * path->strides[0]);
         jptr = (npy_int32*) (path->data + i * path->strides[0] + path->strides[1]);
+        costptr = (float*) (path_costs->data + i * path_costs->strides[0]);
+
 
         *iptr = idx / w;
         *jptr = idx % w;
+        *costptr = costs[idx];
 
         idx = paths[idx];
+
     }
     PyTuple_SET_ITEM(return_val, 0, Py_True);
     PyTuple_SET_ITEM(return_val, 1, PyArray_Return(path));
     PyTuple_SET_ITEM(return_val, 2, PyFloat_FromDouble(costs[goal]));
+    PyTuple_SET_ITEM(return_val, 3, PyArray_Return(path_costs));
   }
   else { // if a goal is not found, return a path to the node we reached closest to the goal
     int closest_node_path_length = find_path_length(paths, start, closest_node.idx);
